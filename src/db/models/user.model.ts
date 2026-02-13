@@ -49,10 +49,7 @@ const userSchema = new Schema<IUser>(
         message: "Sorry, only adults under 60 are permitted",
       },
     },
-    token_v: {
-      type: Number,
-      default: 0,
-    },
+
   },
 
   {

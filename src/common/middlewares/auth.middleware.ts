@@ -1,11 +1,12 @@
-import { RequestHandler } from "express";
 import { Types } from "mongoose";
 import { UnAuthorizedError } from "./error.middleware.js";
 import {
   JwtPayload,
   verifyToken,
-} from "../common/utils/security/json.web.token.js";
-import userModel from "../db/models/user.model.js";
+} from "../../common/utils/security/json.web.token.js";
+import userModel from "../../db/models/user.model.js";
+import { RequestHandler } from "express";
+import { findById } from "../../db/db.services.js";
 
 export const authMiddleware: RequestHandler = async (req, _res, next) => {
   const authHeader = req.headers.authorization;
@@ -18,11 +19,11 @@ export const authMiddleware: RequestHandler = async (req, _res, next) => {
 
   const payload = verifyToken<JwtPayload>(token);
 
-  const user = await userModel.findById(payload.userId);
+  const user = await findById({
+    model: userModel,
+    id: { userId: payload.userId },
+  });
   if (!user) throw new UnAuthorizedError("User doesn't exist");
-
-  if (user.token_v !== payload.token_v)
-    throw new UnAuthorizedError("Token has been revoked");
 
   if (!Types.ObjectId.isValid(payload.userId)) {
     throw new UnAuthorizedError("Invalid token payload");

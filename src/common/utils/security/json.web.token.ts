@@ -4,7 +4,6 @@ import { Types } from "mongoose";
 
 export interface JwtPayload {
   userId: Types.ObjectId;
-  token_v: number;
 }
 
 export const signToken = (payload: JwtPayload): string => {
@@ -14,4 +13,3 @@ export const signToken = (payload: JwtPayload): string => {
 export const verifyToken = <T = JwtPayload>(token: string): T => {
   return jwt.verify(token, env.jwtSecret) as T;
 };
-

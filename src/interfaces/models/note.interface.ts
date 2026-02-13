@@ -1,9 +1,10 @@
-import { ObjectId } from "mongoose";
+import { Types } from "mongoose";
+
 
 export interface INote {
   title: string;
   content: string;
-  userId: ObjectId;
+  userId: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -16,7 +16,7 @@ const noteSchema = new Schema<INote>(
       trim: true,
       require: [true, "Last name is required"],
       minLength: 3,
-      maxLength: 20,
+      maxLength: 500,
     },
 
     userId: {

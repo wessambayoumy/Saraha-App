@@ -7,5 +7,5 @@ export interface IUser {
   password: string;
   phoneNumber: string;
   age: number;
-  token_v: number;
+
 }

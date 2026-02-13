@@ -4,15 +4,17 @@ import noteModel from "../../db/models/note.model.js";
 import {
   BadRequestError,
   NotFoundError,
-} from "../../middlewares/error.middleware.js";
+} from "../../common/middlewares/error.middleware.js";
 import { Types } from "mongoose";
 
 //1
 export const createNote: RequestHandler = async (req, res) => {
   const { title, content } = req.body;
+  const userId = req.userId as Types.ObjectId;
+
   const note = await dbService.create({
     model: noteModel,
-    data: { title, content, userId: req.userId },
+    data: { title, content, userId },
   });
 
   res.json({ note });
@@ -26,7 +28,7 @@ export const updateNote: RequestHandler = async (req, res) => {
   const note = await dbService.findOne({
     model: noteModel,
     filter: {
-      _id: new Types.ObjectId(noteId),
+      _id: new Types.ObjectId(noteId.toString()),
       userId: req.userId!,
     },
   });
@@ -46,9 +48,16 @@ export const updateNote: RequestHandler = async (req, res) => {
   if (!title && !content)
     throw new BadRequestError("Please enter a field to update");
 
-  await noteModel.updateOne({ _id: note._id }, { $set: updateData });
+  await dbService.updateOne({
+    model: noteModel,
+    filter: { _id: note._id },
+    update: { $set: updateData },
+  });
 
-  const updatedNote = await noteModel.findById(note._id);
+  const updatedNote = await dbService.findById({
+    model: noteModel,
+    id: { _id: note._id },
+  });
 
   res.json({
     message: "Note updated successfully",
@@ -58,7 +67,7 @@ export const updateNote: RequestHandler = async (req, res) => {
 
 //3
 export const replaceNote: RequestHandler = async (req, res) => {
-  const { noteId } = req.params;
+  const { noteId } = req.params as { noteId: any };
   const { title, content } = req.body;
 
   const note = await dbService.findOne({
@@ -75,16 +84,17 @@ export const replaceNote: RequestHandler = async (req, res) => {
   if (!title && !content)
     throw new BadRequestError("Please enter a field to update");
 
-  await noteModel.updateOne(
-    { _id: note._id },
-    {
+  await dbService.updateOne({
+    model: noteModel,
+    filter: { _id: note._id },
+    update: {
       $set: {
         title,
         content,
         updatedAt: new Date(),
       },
     },
-  );
+  });
 
   res.json({
     message: "Note replaced successfully",
@@ -99,24 +109,26 @@ export const updateAllNotesTitle: RequestHandler = async (req, res) => {
     throw new BadRequestError("New title is required");
   }
 
-  const result = await noteModel.updateMany(
-    { userId: req.userId },
-    {
+  const result = await dbService.updateMany({
+    model: noteModel,
+    filter: { userId: req.userId },
+    update: {
       $set: {
         title,
         updatedAt: new Date(),
       },
     },
-  );
+  });
 
   res.json({
     message: "All notes updated successfully",
+    result,
   });
 };
 
 //5
 export const deleteNote: RequestHandler = async (req, res) => {
-  const { noteId } = req.params;
+  const { noteId } = req.params as { noteId: any };
 
   const note = await dbService.findOne({
     model: noteModel,
@@ -126,8 +138,8 @@ export const deleteNote: RequestHandler = async (req, res) => {
   if (!note) {
     throw new NotFoundError("Note not found or you are not the owner");
   }
-
-  await noteModel.deleteOne(note._id);
+  const note_Id = note._id;
+  await dbService.deleteOne({ model: noteModel, filter: { note_Id } });
 
   res.json({
     message: "Note deleted successfully",
@@ -141,8 +153,11 @@ export const getUserNotes: RequestHandler = async (req, res) => {
 
   const skip = (page - 1) * limit;
 
-  const totalNotes = await noteModel.countDocuments({
-    userId: req.userId!,
+  const totalNotes = await dbService.countDocuments({
+    model: noteModel,
+    filter: {
+      userId: req.userId!,
+    },
   });
 
   const notes = await dbService
@@ -161,13 +176,13 @@ export const getUserNotes: RequestHandler = async (req, res) => {
 };
 //7
 export const getNoteById: RequestHandler = async (req, res) => {
-  const { noteId } = req.params;
+  const { noteId } = req.params as { noteId: any };
 
   const note = await dbService.findOne({
     model: noteModel,
     filter: {
       _id: new Types.ObjectId(noteId),
-      userId: req.userId!,
+      userId: req.userId,
     },
   });
 
@@ -183,7 +198,7 @@ export const getNoteById: RequestHandler = async (req, res) => {
 
 //8
 export const getNoteByContent: RequestHandler = async (req, res) => {
-  const { noteContent } = req.query;
+  const { noteContent } = req.query as { noteContent: string };
 
   const note = await dbService.findOne({
     model: noteModel,
@@ -230,33 +245,36 @@ export const getNotesAggregate: RequestHandler = async (req, res) => {
     };
   }
 
-  const notes = await noteModel.aggregate([
-    {
-      $match: matchStage,
-    },
-    {
-      $lookup: {
-        from: "users",
-        localField: "userId",
-        foreignField: "_id",
-        as: "user",
+  const notes = await dbService.aggregate({
+    model: noteModel,
+    pipeline: [
+      {
+        $match: matchStage,
       },
-    },
-    {
-      $unwind: "$user",
-    },
-    {
-      $project: {
-        title: 1,
-        content: 1,
-        createdAt: 1,
-        "user.email": 1,
-        userName: {
-          $concat: ["$user.fName", " ", "$user.lName"],
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
         },
       },
-    },
-  ]);
+      {
+        $unwind: "$user",
+      },
+      {
+        $project: {
+          title: 1,
+          content: 1,
+          createdAt: 1,
+          "user.email": 1,
+          userName: {
+            $concat: ["$user.fName", " ", "$user.lName"],
+          },
+        },
+      },
+    ],
+  });
 
   res.json({
     message: "Notes retrieved successfully",
@@ -267,8 +285,11 @@ export const getNotesAggregate: RequestHandler = async (req, res) => {
 
 //11
 export const deleteAllNotes: RequestHandler = async (req, res) => {
-  const result = await noteModel.deleteMany({
-    userId: req.userId,
+  const result = await dbService.deleteMany({
+    model: noteModel,
+    filter: {
+      userId: req.userId,
+    },
   });
 
   res.json({

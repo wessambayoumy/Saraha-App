@@ -1,13 +1,13 @@
 import type {
   Model,
-  ProjectionType,
-  QueryOptions,
-  UpdateQuery,
-  PipelineStage,
-  QueryFilter,
   CreateOptions,
   ObjectId,
+  AggregateOptions,
+  QueryFilter,
+  Types,
 } from "mongoose";
+import * as propertyTypes from "../types/db.property.types.js";
+
 export interface ICreateUserDTO {
   fName: string;
   lName: string;
@@ -19,10 +19,11 @@ export interface ICreateUserDTO {
 export interface ICreateNoteDTO {
   title: string;
   content: string;
-  userId: ObjectId;
+  userId: Types.ObjectId;
+
 }
-export interface ICreateDoc<TSchema> {
-  model: Model<TSchema>;
+export interface ICreateDoc<T> {
+  model: Model<T>;
   data: ICreateNoteDTO | ICreateUserDTO;
   options?: CreateOptions;
 }
@@ -30,31 +31,38 @@ export interface ICreateDoc<TSchema> {
 export interface IFindDoc<T> {
   model: Model<T>;
   filter?: QueryFilter<T>;
-  projection?: ProjectionType<T>;
-  options?: QueryOptions<T>;
+  projection?: propertyTypes.FindProperties<T>[1];
+  options?: propertyTypes.FindProperties<T>[2];
 }
 
 export interface IFindByIdDoc<T> {
   model: Model<T>;
-  id: string;
-  projection?: ProjectionType<T>;
-  options?: QueryOptions<T>;
+  id: propertyTypes.FindByIdProperties<T>[0];
+  projection?: propertyTypes.FindByIdProperties<T>[1];
+  options?: propertyTypes.FindByIdProperties<T>[2];
 }
 
-export interface IUpdateDoc<TSchema> {
-  model: Model<TSchema>;
-  filter?: QueryFilter<TSchema>;
-  update: UpdateQuery<TSchema>;
-  options?: QueryOptions<TSchema>;
+export interface IUpdateDoc<T> {
+  model: Model<T>;
+  filter?: QueryFilter<T>;
+  update: propertyTypes.UpdateProperties<T>[1];
+  options?: propertyTypes.UpdateProperties<T>[2];
 }
 
-export interface IDeleteDoc<TSchema> {
-  model: Model<TSchema>;
-  filter?: QueryFilter<TSchema>;
-  options?: QueryOptions<TSchema>;
+export interface IDeleteDoc<T> {
+  model: Model<T>;
+  filter?: QueryFilter<T>;
+  options?: propertyTypes.DeleteProperties<T>[1];
 }
 
 export interface IAggregateDoc<T> {
   model: Model<T>;
-  pipeline: PipelineStage[];
+  pipeline: propertyTypes.AggregateProperties<T>[0];
+  options?: AggregateOptions;
+}
+
+export interface ICountDocs<T> {
+  model: Model<T>;
+  filter?: QueryFilter<T>;
+  options?: propertyTypes.CountProperties<T>[1];
 }

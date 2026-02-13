@@ -6,7 +6,7 @@ import {
   ConflictError,
   NotFoundError,
   UnAuthorizedError,
-} from "../../middlewares/error.middleware.js";
+} from "../../common/middlewares/error.middleware.js";
 import * as dbService from "./../../db/db.services.js";
 import { env } from "../../config/env.js";
 import { signToken } from "../../common/utils/security/json.web.token.js";
@@ -60,7 +60,7 @@ export const signIn: express.RequestHandler = async (req, res) => {
     throw new UnAuthorizedError("Invalid email or password");
   }
 
-  const token = signToken({ userId: user._id, token_v: user.token_v });
+  const token = signToken({ userId: user._id });
 
   return res.json({ token });
 };
@@ -78,20 +78,25 @@ export const updateUser: express.RequestHandler = async (req, res) => {
     )
       throw new ConflictError("Email already exists ");
 
-  const user = await userModel.updateOne({}, { ...updatedFields });
+  const user = await dbService.updateOne({
+    model: userModel,
+    update: { ...updatedFields },
+  });
   return res.json({ message: "user updated successfully", user });
 };
 
 //4
 export const deleteLoggedInUser: express.RequestHandler = async (req, res) => {
-  await userModel.findByIdAndDelete(req.userId);
-
+  const userId = req.userId;
+  const user = await dbService.findById({ model: userModel, id: { userId } });
+  await dbService.deleteOne({ model: userModel, filter: { user } });
   return res.json({ message: "user deleted successfully" });
 };
 
 //5
 export const getLoggedInUser: express.RequestHandler = async (req, res) => {
-  const user = await userModel.findById(req.userId);
+  const userId = req.userId;
+  const user = await dbService.findById({ model: userModel, id: { userId } });
 
   return res.json({ user });
 };
