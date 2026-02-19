@@ -1,20 +1,19 @@
 import express from "express";
 import dbConnection from "./db/connection.js";
 import userRouter from "./modules/user/user.controller.js";
-import { env } from "./config/env.js";
-
-import { successResponseInterceptor } from "./middlewares/success.middleware.js";
+import { env } from "./config/env.service.js";
+import { successResponseInterceptor } from "./common/middlewares/success.middleware.js";
 import {
   globalErrorHandler,
   NotFoundError,
-} from "./middlewares/error.middleware.js";
+} from "./common/middlewares/error.middleware.js";
 import noteRouter from "./modules/note/note.controller.js";
-
+import cors from "cors";
 const app = express();
 const PORT = env.port;
 
 const bootstrap = () => {
-  app.use(express.json());
+  app.use(cors(), express.json());
   app.use(successResponseInterceptor);
 
   app.get("/", (_req, res: express.Response) => {

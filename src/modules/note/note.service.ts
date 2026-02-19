@@ -10,7 +10,7 @@ import { Types } from "mongoose";
 //1
 export const createNote: RequestHandler = async (req, res) => {
   const { title, content } = req.body;
-  const userId = req.userId as Types.ObjectId;
+  const userId = req.user._id ;
 
   const note = await dbService.create({
     model: noteModel,
@@ -29,7 +29,7 @@ export const updateNote: RequestHandler = async (req, res) => {
     model: noteModel,
     filter: {
       _id: new Types.ObjectId(noteId.toString()),
-      userId: req.userId!,
+      userId: req.user._id,
     },
   });
 
@@ -74,7 +74,7 @@ export const replaceNote: RequestHandler = async (req, res) => {
     model: noteModel,
     filter: {
       _id: new Types.ObjectId(noteId),
-      userId: req.userId!,
+      userId: req.user._id!,
     },
   });
 
@@ -111,7 +111,7 @@ export const updateAllNotesTitle: RequestHandler = async (req, res) => {
 
   const result = await dbService.updateMany({
     model: noteModel,
-    filter: { userId: req.userId },
+    filter: { userId: req.user._id },
     update: {
       $set: {
         title,
@@ -132,7 +132,7 @@ export const deleteNote: RequestHandler = async (req, res) => {
 
   const note = await dbService.findOne({
     model: noteModel,
-    filter: { _id: new Types.ObjectId(noteId), userId: req.userId! },
+    filter: { _id: new Types.ObjectId(noteId), userId: req.user._id! },
   });
 
   if (!note) {
@@ -156,12 +156,12 @@ export const getUserNotes: RequestHandler = async (req, res) => {
   const totalNotes = await dbService.countDocuments({
     model: noteModel,
     filter: {
-      userId: req.userId!,
+      userId: req.user._id!,
     },
   });
 
   const notes = await dbService
-    .find({ model: noteModel, filter: { userId: req.userId! } })
+    .find({ model: noteModel, filter: { userId: req.user._id! } })
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -182,7 +182,7 @@ export const getNoteById: RequestHandler = async (req, res) => {
     model: noteModel,
     filter: {
       _id: new Types.ObjectId(noteId),
-      userId: req.userId,
+      userId: req.user._id,
     },
   });
 
@@ -204,7 +204,7 @@ export const getNoteByContent: RequestHandler = async (req, res) => {
     model: noteModel,
     filter: {
       content: noteContent,
-      userId: req.userId!,
+      userId: req.user._id!,
     },
   });
   if (!note) {
@@ -219,7 +219,7 @@ export const getUserNotesWithUserInfo: RequestHandler = async (req, res) => {
   const notes = await dbService
     .find({
       model: noteModel,
-      filter: { user: req.userId },
+      filter: { user: req.user._id },
     })
     .select("title userId createdAt")
     .populate({
@@ -236,7 +236,7 @@ export const getNotesAggregate: RequestHandler = async (req, res) => {
   const { search } = req.query;
 
   const matchStage: any = {
-    userId: req.userId,
+    userId: req.user._id,
   };
 
   if (search) {
@@ -288,7 +288,7 @@ export const deleteAllNotes: RequestHandler = async (req, res) => {
   const result = await dbService.deleteMany({
     model: noteModel,
     filter: {
-      userId: req.userId,
+      userId: req.user._id,
     },
   });
 

@@ -24,6 +24,17 @@ const noteSchema = new Schema<INote>(
       ref: userModel,
       required: [true, "UserId is required"],
     },
+    image:{
+      type:String,
+      validate: {
+        validator: function (value: string):boolean {
+          const urlRegex = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i;
+          return urlRegex.test(value);
+        },
+        message: "Invalid image URL",
+      },
+
+    },
   },
 
   {

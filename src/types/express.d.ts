@@ -1,9 +1,11 @@
 import { Types } from "mongoose";
+import { IUser } from "../interfaces/models/user.interface.ts";
+import { HydratedDocument } from "mongoose";
 
 declare global {
   namespace Express {
     interface Request {
-      userId?: Types.ObjectId;
+      user:HydratedDocument<IUser>;
     }
   }
 }

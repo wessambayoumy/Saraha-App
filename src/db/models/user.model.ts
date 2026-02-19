@@ -1,5 +1,8 @@
 import mongoose, { Model, model, Schema } from "mongoose";
 import { IUser } from "../../interfaces/models/user.interface.js";
+import { genderEnum } from "../../common/enums/gender.enum.js";
+import { providerEnum } from "../../common/enums/provider.enum.js";
+import { roleEnum } from "../../common/enums/role.enum.js";
 
 const userSchema = new Schema<IUser>(
   {
@@ -29,31 +32,46 @@ const userSchema = new Schema<IUser>(
     password: {
       type: String,
       trim: true,
-      require: [true, "Please enter a strong password"],
-    },
+      require: [
+        function name(this: IUser): boolean {
+          return this.provider === providerEnum.system;
+        },
+        "Please enter a strong password",
+      ],
+      select: false,
+     },
 
     phoneNumber: {
       type: String,
       trim: true,
-      required: [true, "Phone Number is required"],
     },
-
     age: {
       type: Number,
-      trim: true,
-      required: [true, "Age is required"],
-      validate: {
-        validator: function (age) {
-          return age >= 18 && age <= 60;
-        },
-        message: "Sorry, only adults under 60 are permitted",
-      },
+      
     },
 
+    gender: {
+      type: String,
+      enum: Object.values(genderEnum),
+      default: Object.values(genderEnum)[0],
+    },
+    provider: {
+      type: String,
+      enum: Object.values(providerEnum),
+      default: Object.values(providerEnum)[0],
+    },
+    role: {
+      type: String,
+      enum: Object.values(roleEnum),
+      default: Object.values(roleEnum)[0],
+    },
+    
+    confirmed: Boolean,
+    profilePicture: String,
   },
-
   {
     strict: true,
+    timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
   },

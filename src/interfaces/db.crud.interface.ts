@@ -1,7 +1,6 @@
 import type {
   Model,
   CreateOptions,
-  ObjectId,
   AggregateOptions,
   QueryFilter,
   Types,
@@ -15,13 +14,18 @@ export interface ICreateUserDTO {
   password: string;
   phoneNumber: string;
   age: number;
+  confirmed?: boolean;
+  provider?: string;
+  gender?: string;
+  role?: string;
 }
+
 export interface ICreateNoteDTO {
   title: string;
   content: string;
   userId: Types.ObjectId;
-
 }
+
 export interface ICreateDoc<T> {
   model: Model<T>;
   data: ICreateNoteDTO | ICreateUserDTO;
