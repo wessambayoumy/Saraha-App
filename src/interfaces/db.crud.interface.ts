@@ -4,21 +4,11 @@ import type {
   AggregateOptions,
   QueryFilter,
   Types,
+  AnyKeys,
 } from "mongoose";
 import * as propertyTypes from "../types/db.property.types.js";
+import { providerEnum } from "../common/enums/user.enums.js";
 
-export interface ICreateUserDTO {
-  fName: string;
-  lName: string;
-  email: string;
-  password: string;
-  phoneNumber: string;
-  age: number;
-  confirmed?: boolean;
-  provider?: string;
-  gender?: string;
-  role?: string;
-}
 
 export interface ICreateNoteDTO {
   title: string;
@@ -26,10 +16,31 @@ export interface ICreateNoteDTO {
   userId: Types.ObjectId;
 }
 
-export interface ICreateDoc<T> {
-  model: Model<T>;
-  data: ICreateNoteDTO | ICreateUserDTO;
-  options?: CreateOptions;
+export interface ICreateBaseUserDTO {
+  fName: string;
+  lName: string;
+  email: string;
+}
+
+export interface ICreateSystemUserDTO extends ICreateBaseUserDTO {
+  provider: providerEnum.system;
+  password: string;
+  phoneNumber: string;
+  age: number;
+  gender?: string;
+  role?: string;
+}
+
+export interface ICreateGoogleUserDTO extends ICreateBaseUserDTO {
+  provider: providerEnum.google;
+  confirmed: true;
+  profilePicture?: string;
+}
+
+export interface ICreateDoc<TSchema,TData> {
+  model: Model<TSchema>;
+  data: TData ;
+  options?:CreateOptions;
 }
 
 export interface IFindDoc<T> {

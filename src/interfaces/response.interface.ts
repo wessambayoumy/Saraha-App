@@ -1,6 +1,7 @@
 export interface IErrorResponse {
   message: string;
   stack?: string;
+  extra:Object
 }
 
 export interface ISuccessResponse {

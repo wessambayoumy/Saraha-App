@@ -1,31 +1,30 @@
 import { Router } from "express";
 import * as noteService from "./note.service.js";
-import { authenticationMiddleware } from "../../common/middlewares/auth/authentication.middleware.js";
-import { authorizationMiddleware } from "../../common/middlewares/auth/authorization.middleware.js";
-import { roleEnum } from "../../common/enums/role.enum.js";
+import { authMiddleware } from "../../common/middlewares/auth/auth.middleware.js";
+
 const noteRouter = Router();
 
-noteRouter.post("/", noteService.createNote);
+noteRouter.post("/", async (req, res) => {
+  const note = await noteService.createNote(req);
+  res.status(201).json({ message: "Note created successfully", note });
+});
 
-noteRouter.patch("/:noteId", authenticationMiddleware, noteService.updateNote);
+noteRouter.get("/", authMiddleware, async (req, res) => {
+  const notes = await noteService.getUserNotes(req);
+  res.json(notes);
+});
+noteRouter.get("/:noteId", authMiddleware, async (req, res) => {
+  const note = await noteService.getNoteById(req);
+  res.json(note);
+});
 
-noteRouter.delete("/", authenticationMiddleware,authorizationMiddleware([roleEnum.admin]), noteService.deleteAllNotes);
-noteRouter.delete("/:noteId", authenticationMiddleware,authorizationMiddleware([roleEnum.admin]),  noteService.deleteNote);
-
-noteRouter.get("/paginate-sort", authenticationMiddleware, noteService.getUserNotes);
-noteRouter.get(
-  "/note-by-content",
-  authenticationMiddleware,
-  authorizationMiddleware([roleEnum.admin]), 
-  noteService.getNoteByContent,
-);
-noteRouter.get(
-  "/note-with-user",
-  authenticationMiddleware,
-  authorizationMiddleware([roleEnum.admin]), 
-  noteService.getUserNotesWithUserInfo,
-);
-noteRouter.get("/aggregate", authenticationMiddleware, noteService.getNotesAggregate); 
-noteRouter.get("/:noteId", authenticationMiddleware, noteService.getNoteById);
+noteRouter.delete("/", authMiddleware, async (req, res) => {
+  const deletedNotes = await noteService.deleteAllNotes(req);
+  res.json({ message: "All notes deleted successfully", deletedNotes });
+});
+noteRouter.delete("/:noteId", authMiddleware, async (req, res) => {
+  const deletedNote = await noteService.deleteNote(req);
+  res.json({ message: "Note deleted successfully", deletedNote });
+});
 
 export default noteRouter;

@@ -1,45 +1,43 @@
 import mongoose, { Model, model, Schema } from "mongoose";
-import { IUser } from "../../interfaces/models/user.interface.js";
-import { genderEnum } from "../../common/enums/gender.enum.js";
-import { providerEnum } from "../../common/enums/provider.enum.js";
-import { roleEnum } from "../../common/enums/role.enum.js";
+import { IUser } from "../../../interfaces/models/index.js";
+import {
+  genderEnum,
+  providerEnum,
+  roleEnum,
+} from "../../../common/enums/user.enums.js";
 
 const userSchema = new Schema<IUser>(
   {
     fName: {
       type: String,
       trim: true,
-      require: [true, "First name is required"],
+      required: [true, "First name is required"],
       minLength: 3,
       maxLength: 20,
     },
     lName: {
       type: String,
       trim: true,
-      require: [true, "Last name is required"],
+      required: [true, "Last name is required"],
       minLength: 3,
       maxLength: 20,
     },
     email: {
       type: String,
-      require: [true, "Email is required"],
-      match: [
-        /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,10}$/,
-        "invalid email format",
-      ],
+      required: [true, "Email is required"],
       unique: true,
     },
     password: {
       type: String,
       trim: true,
-      require: [
-        function name(this: IUser): boolean {
+      select: false,
+      required: [
+        function (): boolean {
           return this.provider === providerEnum.system;
         },
         "Please enter a strong password",
       ],
-      select: false,
-     },
+    },
 
     phoneNumber: {
       type: String,
@@ -47,7 +45,6 @@ const userSchema = new Schema<IUser>(
     },
     age: {
       type: Number,
-      
     },
 
     gender: {
@@ -65,7 +62,7 @@ const userSchema = new Schema<IUser>(
       enum: Object.values(roleEnum),
       default: Object.values(roleEnum)[0],
     },
-    
+
     confirmed: Boolean,
     profilePicture: String,
   },
@@ -77,9 +74,16 @@ const userSchema = new Schema<IUser>(
   },
 );
 
-userSchema.virtual("userName").get(function () {
-  return `${this.fName}_${this.lName}`;
-});
+userSchema
+  .virtual("userName")
+  .set(function (value: string) {
+    const [fName, lName] = value.split("_");
+    this.fName = fName;
+    this.lName = lName;
+  })
+  .get(function () {
+    return `${this.fName}_${this.lName}`;
+  });
 
 const userModel: Model<IUser> =
   mongoose.models.users || model("users", userSchema);

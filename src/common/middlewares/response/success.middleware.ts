@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import { ISuccessResponse } from "../interfaces/response.interface.js";
+import { ISuccessResponse } from "./../../../interfaces/index.js";
 
 
 export const successResponseInterceptor: RequestHandler = (req, res, next) => {
