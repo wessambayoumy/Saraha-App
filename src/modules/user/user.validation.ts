@@ -33,7 +33,7 @@ export const googleSignUpSchema = {
       userName: joi.string().required().trim().min(6).max(40),
       email: joi.string().required().email(),
       provider: joi.string().valid(...Object.values(providerEnum)),
-      confirmed: joi.boolean().allow(true),
+      confirmed: joi.boolean(),
       profilePicture: joi.string(),
     })
     .required(),

@@ -15,4 +15,7 @@ export const env = {
   jwtUserSecret: process.env.JWT_SIGNATURE_USER as string,
   jwtIssuer: process.env.JWT_ISSUER as string,
   encryptionKey: process.env.ENCRYPTION_KEY as string,
+  emailUser: process.env.EMAIL_USER as string,
+  emailPass: process.env.EMAIL_PASS as string,
+  emailSecret: process.env.EMAIL_SECRET as string,
 };

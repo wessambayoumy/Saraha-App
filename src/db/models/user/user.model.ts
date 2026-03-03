@@ -63,8 +63,24 @@ const userSchema = new Schema<IUser>(
       default: Object.values(roleEnum)[0],
     },
 
-    confirmed: Boolean,
+    confirmed: { type: Boolean, default: false },
     profilePicture: String,
+    loginAttempts: {
+      type: Number,
+      default: 0,
+    },
+
+    lockUntil: {
+      type: Date,
+    },
+    twoFactorEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    twoFactorSecret: {
+      type: String,
+      select: false,
+    },
   },
   {
     strict: true,
@@ -84,6 +100,14 @@ userSchema
   .get(function () {
     return `${this.fName}_${this.lName}`;
   });
+
+userSchema.index(
+  { createdAt: 1 },
+  {
+    expireAfterSeconds: 60 * 60 * 24,
+    partialFilterExpression: { confirmed: false },
+  },
+);
 
 const userModel: Model<IUser> =
   mongoose.models.users || model("users", userSchema);

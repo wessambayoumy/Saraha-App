@@ -17,6 +17,10 @@ export interface IUser {
   provider: providerEnum;
   role: roleEnum;
   confirmed?: boolean;
+  lockUntil?: Date;
+  loginAttempts?: number;
+  twoFactorEnabled?: boolean;
+  twoFactorSecret?: string;
   createdAt: Date;
   updatedAt: Date;
 }
