@@ -7,6 +7,7 @@ import {
 export interface IUser {
   fName: string;
   lName: string;
+  profileName: string;
   userName: string;
   email: string;
   password?: string;
@@ -16,9 +17,9 @@ export interface IUser {
   gender: genderEnum;
   provider: providerEnum;
   role: roleEnum;
-  confirmed?: boolean;
-  lockUntil?: Date;
-  loginAttempts?: number;
+  views: number;
+  confirmed: boolean;
+  signOutDate: Date;
   twoFactorEnabled?: boolean;
   twoFactorSecret?: string;
   createdAt: Date;

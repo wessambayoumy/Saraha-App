@@ -11,22 +11,34 @@ const userSchema = new Schema<IUser>(
     fName: {
       type: String,
       trim: true,
-      required: [true, "First name is required"],
+      required: true,
       minLength: 3,
       maxLength: 20,
     },
+
     lName: {
       type: String,
       trim: true,
-      required: [true, "Last name is required"],
+      required: true,
       minLength: 3,
       maxLength: 20,
     },
+
+    profileName: {
+      type: String,
+      required: true,
+      unique: [true, "Profile name must be unique"],
+      trim: true,
+      minLength: 5,
+      maxLength: 40,
+    },
+
     email: {
       type: String,
-      required: [true, "Email is required"],
+      required: true,
       unique: true,
     },
+
     password: {
       type: String,
       trim: true,
@@ -52,27 +64,33 @@ const userSchema = new Schema<IUser>(
       enum: Object.values(genderEnum),
       default: Object.values(genderEnum)[0],
     },
+
     provider: {
       type: String,
       enum: Object.values(providerEnum),
       default: Object.values(providerEnum)[0],
     },
+
     role: {
       type: String,
       enum: Object.values(roleEnum),
       default: Object.values(roleEnum)[0],
     },
 
-    confirmed: { type: Boolean, default: false },
-    profilePicture: String,
-    loginAttempts: {
+    views: {
       type: Number,
       default: 0,
     },
 
-    lockUntil: {
-      type: Date,
+    confirmed: {
+      type: Boolean,
+      default: false,
     },
+    
+    signOutDate: Date,
+
+    profilePicture: String,
+
     twoFactorEnabled: {
       type: Boolean,
       default: false,

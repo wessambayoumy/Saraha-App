@@ -9,8 +9,9 @@ import {
 } from "./common/middlewares/index.js";
 import noteRouter from "./modules/note/note.controller.js";
 import cors from "cors";
+import { redisConection } from "./db/redis/redis.connection.js";
 
-const bootstrap = () => {
+const bootstrap = async () => {
   const app = express();
   const PORT = env.port;
 
@@ -21,11 +22,10 @@ const bootstrap = () => {
     res.json({ message: "Hello from TypeScript + Express!" });
   });
 
-  dbConnection();
-
+  await dbConnection();
+  await redisConection();
   app.use("/users", userRouter);
   app.use("/notes", noteRouter);
-
   app.use("{/*demo}", (req: express.Request, _res) => {
     throw new NotFoundError(`Route not found: ${req.originalUrl}`);
   });

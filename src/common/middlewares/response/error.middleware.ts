@@ -1,5 +1,6 @@
 import { ErrorRequestHandler } from "express";
 import { IErrorResponse } from "./../../../interfaces/index.js";
+import { MulterError } from "multer";
 
 export class AppErrors extends Error {
   statusCode: number;
@@ -44,6 +45,8 @@ export class ConflictError extends AppErrors {
 }
 
 export const globalErrorHandler: ErrorRequestHandler = (err, _req, res) => {
+  err instanceof MulterError &&
+    new BadRequestError(err.message, { code: err.code });
   const status = err instanceof AppErrors ? err.statusCode : 500;
   let response: IErrorResponse = {
     message: err.message,

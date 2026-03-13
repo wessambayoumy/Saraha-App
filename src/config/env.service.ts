@@ -18,4 +18,5 @@ export const env = {
   emailUser: process.env.EMAIL_USER as string,
   emailPass: process.env.EMAIL_PASS as string,
   emailSecret: process.env.EMAIL_SECRET as string,
+  redisUri: process.env.REDIS_URI as string,
 };

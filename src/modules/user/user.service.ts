@@ -1,4 +1,3 @@
-import bcrypt from "bcrypt";
 import userModel from "../../db/models/user/user.model.js";
 import {
   BadRequestError,
@@ -8,11 +7,21 @@ import {
 } from "../../common/middlewares/index.js";
 import * as dbService from "../../db/db.service.js";
 import { env } from "../../config/env.service.js";
-import { signToken, encrypt, sendEmail, verifyToken } from "../../common/utils/index.js";
+import {
+  signToken,
+  encrypt,
+  sendEmail,
+  verifyToken,
+  hash,
+  compareHash,
+  JwtDetails,
+} from "../../common/utils/index.js";
 import { providerEnum, roleEnum } from "../../common/enums/user.enums.js";
 import { OAuth2Client } from "google-auth-library";
 import { Request } from "express";
 import { authenticator } from "@otplib/preset-default";
+import { redis } from "../../db/redis/redis.service.js";
+import jwt from "jsonwebtoken";
 
 export const getAllUsers = async () => {
   const users = await dbService.find({ model: userModel });
@@ -22,14 +31,27 @@ export const getAllUsers = async () => {
   return users;
 };
 
-let views = 0;
-export const getUserProfile = async () => {
-  const user = await dbService.findOne({
-    model: userModel,
-  });
+export const getUserProfile = async (req: Request) => {
+  const { profileName } = req.params;
+  console.log(profileName);
+
+  const user = await dbService
+    .findOne({
+      model: userModel,
+      filter: { profileName },
+    })
+    .select("age gender profilePicture profileName userName views");
   if (!user) throw new NotFoundError("User not found");
-  views++;
-  return { user, views };
+  user.views++;
+  return user;
+};
+
+export const shareProfileLink = async (req: Request) => {
+  const userId = req.user._id;
+  const user = await dbService.findById({ model: userModel, id: userId });
+  console.log(req);
+
+  return `${env.jwtIssuer}${req.path}/${user?.profileName}`;
 };
 
 export const signUp = async (req: Request) => {
@@ -42,6 +64,7 @@ export const signUp = async (req: Request) => {
     age,
     gender,
     role,
+    profileName,
   } = req.body;
 
   if (await dbService.findOne({ model: userModel, filter: { email } }))
@@ -49,7 +72,7 @@ export const signUp = async (req: Request) => {
 
   if (password !== rePassword) throw new ConflictError("Passwords don't match");
 
-  const hashedPassword = await bcrypt.hash(password, env.saltRounds);
+  const hashedPassword = hash(password);
 
   return await dbService.create({
     model: userModel,
@@ -61,6 +84,7 @@ export const signUp = async (req: Request) => {
       age,
       gender,
       role,
+      profileName,
     },
   });
 };
@@ -116,30 +140,30 @@ export const signIn = async (req: Request) => {
     throw new UnAuthorizedError("Invalid email or password");
   }
 
-  if (user.lockUntil && user.lockUntil > new Date()) {
+  if (await redis.get("denyLogin")) {
     throw new UnAuthorizedError(
-      "Too many failed attempts. Try after 5 minutes",
+      `Too many failed attempts. Try after ${await redis.ttl("denyLogin")} seconds`,
     );
   }
 
-  if (!bcrypt.compareSync(password, user.password!)) {
-    user.loginAttempts = (user.loginAttempts || 0) + 1;
+  if (!compareHash(password, user.password!)) {
+    (await redis.exists("loginAttempts"))
+      ? await redis.incrBy("loginAttempts", 1)
+      : await redis.set("loginAttempts", 1);
 
-    if (user.loginAttempts >= 5) {
-      user.lockUntil = new Date(Date.now() + 5 * 60 * 1000);
-      user.loginAttempts = 0;
+    if (Number(await redis.get("loginAttempts")) >= 5) {
+      await redis.set("denyLogin", 1, {
+        expiration: { type: "EX", value: 60 * 5 },
+      });
+      await redis.del("loginAttempts");
     }
 
     await user.save();
+
     throw new UnAuthorizedError("Invalid email or password");
   }
 
-  user.loginAttempts = 0;
-  user.lockUntil = undefined;
   await user.save();
-  if (user.twoFactorEnabled) {
-    verify2FA(req);
-  }
 
   const accessToken = signToken(
     {
@@ -154,10 +178,26 @@ export const signIn = async (req: Request) => {
   return accessToken;
 };
 
+export const signOut = async (req: Request) => {
+  let token = req.token;
+  let { jti } = jwt.decode(token) as JwtDetails;
+  await redis.set(`revokeId:${jti}`, 1, {
+    expiration: { type: "EX", value: 30 * 60 },
+  });
+  console.log({ jti });
+};
+
+export const signOutFromAll = async (req: Request) => {
+  req.user.signOutDate = new Date();
+  await req.user.save();
+};
+
 export const enable2FA = async (req: Request) => {
   const userId = req.user._id;
 
-  const user = await dbService.findById({ model: userModel, id: userId });
+  const user = await dbService
+    .findById({ model: userModel, id: userId })
+    .select("+twoFactorSecret");
   if (!user) throw new NotFoundError("User not found");
 
   if (user.twoFactorEnabled) {
@@ -173,8 +213,8 @@ export const enable2FA = async (req: Request) => {
 
   await sendEmail(
     user.email,
-    "Your 2FA Verification Code",
-    `Your OTP code is: ${otp}`,
+    `Your 2FA Verification Code`,
+    `<h3>Your OTP code is: ${otp}</h3>`,
   );
 };
 
@@ -191,7 +231,7 @@ export const verify2FA = async (req: Request) => {
   }
 
   const isValid = authenticator.verify({
-    token: otp,
+    token: otp.trim(),
     secret: user.twoFactorSecret,
   });
 
@@ -211,13 +251,13 @@ export const updatePassword = async (req: Request) => {
     .select("+password");
   if (!user) throw new NotFoundError("User not found");
 
-  if (!bcrypt.compareSync(currentPassword, user.password!)) {
+  if (!compareHash(currentPassword, user.password!)) {
     throw new UnAuthorizedError("Current password is incorrect");
   }
   if (newPassword !== reNewPassword) {
     throw new ConflictError("New passwords don't match");
   }
-  user.password = await bcrypt.hash(newPassword, env.saltRounds);
+  user.password = hash(newPassword);
 
   await user.save();
   return user;
@@ -228,14 +268,13 @@ export const resetPassword = async (req: Request) => {
   const user = await dbService.findOne({ model: userModel, filter: { email } });
   if (!user) throw new NotFoundError("User not found");
   const tempPassword = Math.random().toString(36).slice(-8);
-  user.password = await bcrypt.hash(tempPassword, env.saltRounds);
+  user.password = hash(tempPassword);
   await user.save();
   await sendEmail(
     user.email,
     "Password Reset",
-    `Your temporary password is: ${tempPassword}`,
+    `<h3>Your temporary password is: ${tempPassword}</h3>`,
   );
-  updatePassword(req);
 };
 
 export const confirmEmail = async (req: Request) => {
@@ -254,6 +293,21 @@ export const confirmEmail = async (req: Request) => {
 
   user.confirmed = true;
   await user.save();
+};
 
+export const updateUser = async (req: Request) => {
+  const userId = req.user._id;
+  if (req.body.password || req.body.email) {
+    throw new BadRequestError("Cannot update email or password here");
+  }
+  return await dbService.updateOne({
+    model: userModel,
+    filter: { userId },
+    update: { ...req.body },
+  });
+};
 
+export const deleteUser = async (req: Request) => {
+  const userId = req.user._id;
+  return await dbService.deleteOne({ model: userModel, filter: { userId } });
 };

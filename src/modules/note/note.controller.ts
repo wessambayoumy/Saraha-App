@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as noteService from "./note.service.js";
-import { authMiddleware } from "../../common/middlewares/auth/auth.middleware.js";
+import { authMiddleware } from "../../common/middlewares/auth.middleware.js";
 
 const noteRouter = Router();
 
