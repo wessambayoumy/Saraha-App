@@ -6,22 +6,25 @@ import {
   UnAuthorizedError,
 } from "../../common/middlewares/index.js";
 import * as dbService from "../../db/db.service.js";
-import { env } from "../../config/env.service.js";
+import { env } from "../../../config/env.service.js";
 import {
   signToken,
   encrypt,
-  sendEmail,
-  verifyToken,
   hash,
   compareHash,
   JwtDetails,
+  generatePassword,
 } from "../../common/utils/index.js";
 import { providerEnum, roleEnum } from "../../common/enums/user.enums.js";
 import { OAuth2Client } from "google-auth-library";
 import { Request } from "express";
-import { authenticator } from "@otplib/preset-default";
 import { redis } from "../../db/redis/redis.service.js";
 import jwt from "jsonwebtoken";
+import EventEmitter from "node:events";
+
+const event = new EventEmitter();
+
+//GET
 
 export const getAllUsers = async () => {
   const users = await dbService.find({ model: userModel });
@@ -54,6 +57,8 @@ export const shareProfileLink = async (req: Request) => {
   return `${env.jwtIssuer}${req.path}/${user?.profileName}`;
 };
 
+// POST
+
 export const signUp = async (req: Request) => {
   const {
     userName,
@@ -66,6 +71,11 @@ export const signUp = async (req: Request) => {
     role,
     profileName,
   } = req.body;
+
+  let profilePicture = "";
+
+  if (req.file)
+    profilePicture = `${env.jwtIssuer}/${req.file.destination}/${req.file.filename}`;
 
   if (await dbService.findOne({ model: userModel, filter: { email } }))
     throw new ConflictError("User Already Exists");
@@ -85,6 +95,7 @@ export const signUp = async (req: Request) => {
       gender,
       role,
       profileName,
+      profilePicture,
     },
   });
 };
@@ -100,6 +111,7 @@ export const signUpWithGoogle = async (req: Request) => {
   const payload = ticket.getPayload();
 
   if (!payload) throw new BadRequestError("Invalid Google token");
+
   const { email, email_verified, picture, name } = payload;
 
   let user = await dbService.findOne({
@@ -163,26 +175,32 @@ export const signIn = async (req: Request) => {
     throw new UnAuthorizedError("Invalid email or password");
   }
 
-  await user.save();
-
-  const accessToken = signToken(
-    {
-      userId: user._id,
-      email: user.email,
-      role: user.role,
-    },
-    user.role === roleEnum.admin ? env.jwtAdminSecret : env.jwtUserSecret,
-    { audience: user.role },
-  );
-
-  return accessToken;
+  if (user.twoFactorEnabled) {
+    event.emit(`signInOtp/${user._id}`, user.email);
+    return { message: "verification otp sent to your email" };
+  } else {
+    const accessToken = signToken(
+      {
+        userId: user._id,
+        email: user.email,
+        role: user.role,
+      },
+      user.role === roleEnum.admin ? env.jwtAdminSecret : env.jwtUserSecret,
+      { audience: user.role },
+    );
+    await user.save();
+    return {
+      message: "signed in successfully",
+      accessToken,
+    };
+  }
 };
 
 export const signOut = async (req: Request) => {
   let token = req.token;
   let { jti } = jwt.decode(token) as JwtDetails;
   await redis.set(`revokeId:${jti}`, 1, {
-    expiration: { type: "EX", value: 30 * 60 },
+    expiration: { type: "EX", value: 7 * 24 * 60 * 60 },
   });
   console.log({ jti });
 };
@@ -204,44 +222,49 @@ export const enable2FA = async (req: Request) => {
     throw new ConflictError("2FA already enabled");
   }
 
-  const secret = authenticator.generateSecret();
-
-  user.twoFactorSecret = secret;
   await user.save();
-
-  const otp = authenticator.generate(secret);
-
-  await sendEmail(
-    user.email,
-    `Your 2FA Verification Code`,
-    `<h3>Your OTP code is: ${otp}</h3>`,
-  );
+  console.log("mn 2wlha keda?");
+  event.emit(`enable2FA/${user._id}`, user.email);
 };
 
-export const verify2FA = async (req: Request) => {
-  const { otp } = req.body;
-  const userId = req.user._id;
+export const verifyOtp = async (
+  otp: string,
+  otpName: string,
+  email: string,
+) => {
+  const user = await dbService.findOne({ model: userModel, filter: { email } });
 
-  const user = await dbService
-    .findById({ model: userModel, id: userId })
-    .select("+twoFactorSecret");
+  if (!user) throw new NotFoundError("user not found");
 
-  if (!user || !user.twoFactorSecret) {
-    throw new BadRequestError("2FA not initiated");
+  const redisOtp = await redis.get(otpName);
+  if (!redisOtp) throw new BadRequestError("otp not sent");
+  if (!compareHash(otp, redisOtp)) throw new UnAuthorizedError("Incorrect otp");
+  let data = {};
+  switch (otpName) {
+    case `enable2FA/${user._id}`: {
+      user.twoFactorEnabled = true;
+      data = { message: `2FA enabled successfully` };
+      break;
+    }
+    case `signInOtp/${user._id}`: {
+      data = { message: `Signed in successfully` };
+      break;
+    }
+    case `forgetPassword/${user._id}`: {
+      const temp = generatePassword();
+      user.password = hash(temp);
+      data = {
+        message: `Use this temporary password to update your password.`,
+        temp,
+      };
+      break;
+    }
   }
-
-  const isValid = authenticator.verify({
-    token: otp.trim(),
-    secret: user.twoFactorSecret,
-  });
-
-  if (!isValid) {
-    throw new UnAuthorizedError("Invalid OTP");
-  }
-
-  user.twoFactorEnabled = true;
   await user.save();
+  return data;
 };
+
+// PATCH
 
 export const updatePassword = async (req: Request) => {
   const { currentPassword, newPassword, reNewPassword } = req.body;
@@ -263,49 +286,54 @@ export const updatePassword = async (req: Request) => {
   return user;
 };
 
-export const resetPassword = async (req: Request) => {
-  const { email } = req.body;
+//PUT
+
+export const resetPassword = async (email: string) => {
   const user = await dbService.findOne({ model: userModel, filter: { email } });
-  if (!user) throw new NotFoundError("User not found");
-  const tempPassword = Math.random().toString(36).slice(-8);
-  user.password = hash(tempPassword);
-  await user.save();
-  await sendEmail(
-    user.email,
-    "Password Reset",
-    `<h3>Your temporary password is: ${tempPassword}</h3>`,
-  );
-};
+  if (!user) throw new NotFoundError("user not found");
 
-export const confirmEmail = async (req: Request) => {
-  const { token } = req.params as { token: string };
-
-  const payload = verifyToken(token, env.emailSecret);
-
-  const user = await dbService.findById({
-    model: userModel,
-    id: payload.userId,
-  });
-
-  if (!user) {
-    throw new NotFoundError("User not found");
-  }
-
-  user.confirmed = true;
-  await user.save();
+  event.emit(`forgetPassword/${user._id}`, email);
 };
 
 export const updateUser = async (req: Request) => {
-  const userId = req.user._id;
-  if (req.body.password || req.body.email) {
+  const { userName, phoneNumber, age, gender, profileName, email, password } =
+    req.body;
+
+  if (password || email)
     throw new BadRequestError("Cannot update email or password here");
-  }
-  return await dbService.updateOne({
+
+  let updatedUser = await dbService.findById({
     model: userModel,
-    filter: { userId },
-    update: { ...req.body },
+    id: req.user._id,
   });
+
+  let profilePicture = "";
+
+  if (req.file) {
+    profilePicture = `${env.jwtIssuer}/${req.file.destination}/${req.file.filename}`;
+    updatedUser!.profilePicture = profilePicture;
+  }
+
+  userName && (updatedUser!.userName = userName);
+  phoneNumber && (updatedUser!.phoneNumber = encrypt(phoneNumber));
+  age && (updatedUser!.age = age);
+  gender && (updatedUser!.gender = gender);
+  profileName && (updatedUser!.profileName = profileName);
+
+  if (
+    !userName &&
+    !phoneNumber &&
+    !age &&
+    !gender &&
+    !profileName &&
+    !profilePicture
+  )
+    throw new BadRequestError("no fields changed");
+
+  return await updatedUser!.save();
 };
+
+// DELETE
 
 export const deleteUser = async (req: Request) => {
   const userId = req.user._id;

@@ -1,9 +1,9 @@
 import { Types } from "mongoose";
 
-
 export interface INote {
-  message: string;
-  image?:string;
+  title: string;
+  content: string;
+  attachments?: string[];
   userId: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;

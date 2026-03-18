@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import type { Secret, SignOptions, VerifyOptions } from "jsonwebtoken";
 import { Types } from "mongoose";
 import { v4 } from "uuid";
-import { env } from "../../../config/env.service.js";
+import { env } from "../../../../config/env.service.js";
 import { roleEnum } from "../../enums/user.enums.js";
 
 export interface JwtDetails {

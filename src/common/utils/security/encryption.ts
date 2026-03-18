@@ -1,5 +1,5 @@
 import { randomBytes, createCipheriv, createDecipheriv } from "node:crypto";
-import { env } from "../../../config/env.service.js";
+import { env } from "../../../../config/env.service.js";
 
 const ENCRYPTION_KEY = Buffer.from(env.encryptionKey, "hex");
 const IV_LENGTH = 16;

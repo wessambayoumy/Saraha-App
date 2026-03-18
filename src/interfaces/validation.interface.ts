@@ -4,4 +4,5 @@ export interface ValidationSchema {
   body?: ObjectSchema;
   params?: ObjectSchema;
   query?: ObjectSchema;
+  file?: ObjectSchema;
 }

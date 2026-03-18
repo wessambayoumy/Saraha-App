@@ -1,5 +1,5 @@
 import { hashSync, compareSync } from "bcrypt";
-import { env } from "../../../config/env.service.js";
+import { env } from "../../../../config/env.service.js";
 
 export const hash = (data: string | Buffer<ArrayBufferLike>) =>
   hashSync(data, env.saltRounds);

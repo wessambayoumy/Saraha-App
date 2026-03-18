@@ -14,22 +14,28 @@ export const systemSignUpSchema = {
       userName: joi.string().trim().min(6).max(40),
       profileName: joi.string().trim().alphanum().min(5).max(40).required(),
       email: joi.string().email().required(),
-      password: joi
-        .string()
-        .regex(/^(?=.*\d)(?=.*[A-Z])(?=.*[a-z])(?=.*[^\w\s:])([^\s]){8,16}$/)
-        .trim()
-        .required(),
-      rePassword: joi
-        .string()
-        .regex(/^(?=.*\d)(?=.*[A-Z])(?=.*[a-z])(?=.*[^\w\s:])([^\s]){8,16}$/)
-        .trim()
-        .required(),
-      phoneNumber: joi.string(),
+      password: joi.string().regex(passwordRegex).trim().required(),
+      rePassword: joi.string().regex(passwordRegex).trim().required(),
+      phoneNumber: joi.string().required(),
       age: joi.number(),
       gender: joi.string().valid(...Object.values(genderEnum)),
       role: joi.string().valid(...Object.values(roleEnum)),
     })
     .required(),
+  file: joi.object({
+    fieldname: joi.string().required(),
+    originalname: joi.string().required(),
+    encoding: joi.string().required(),
+    mimetype: joi
+      .string()
+      .valid("image/jpeg", "image/png", "image/webp")
+      .required(),
+    destination: joi.string(),
+    filename: joi.string(),
+    path: joi.string(),
+    size: joi.number().max(5 * 1024 * 1024),
+    buffer: joi.binary(),
+  }),
 };
 export const googleSignUpSchema = {
   body: joi
@@ -48,11 +54,8 @@ export const signInSchema = {
   body: joi
     .object({
       email: joi.string().email().required(),
-      password: joi
-        .string()
-        .regex(/^(?=.*\d)(?=.*[A-Z])(?=.*[a-z])(?=.*[^\w\d\s:])([^\s]){8,16}$/)
-        .trim()
-        .required(),
+      password: joi.string().regex(passwordRegex).trim().required(),
+      OTP: joi.string().trim().length(6).pattern(/^\d+$/),
     })
     .required(),
 };
@@ -61,13 +64,27 @@ export const updateUser = {
   body: joi
     .object({
       userName: joi.string().trim().min(6).max(40),
-      profileName: joi.string().trim().alphanum().min(5).max(40).required(),
+      profileName: joi.string().trim().alphanum().min(5).max(40),
       phoneNumber: joi.string(),
       age: joi.number(),
       gender: joi.string().valid(...Object.values(genderEnum)),
       role: joi.string().valid(...Object.values(roleEnum)),
     })
     .required(),
+  file: joi.object({
+    fieldname: joi.string().required(),
+    originalname: joi.string().required(),
+    encoding: joi.string().required(),
+    mimetype: joi
+      .string()
+      .valid("image/jpeg", "image/png", "image/webp")
+      .required(),
+    destination: joi.string(),
+    filename: joi.string(),
+    path: joi.string(),
+    size: joi.number().max(5 * 1024 * 1024),
+    buffer: joi.binary(),
+  }),
 };
 
 export const getUserProfileSchema = {
@@ -82,6 +99,8 @@ export const verify2FASchema = {
   body: joi
     .object({
       otp: joi.string().trim().length(6).pattern(/^\d+$/).required(),
+      otpName: joi.string().required(),
+      email: joi.string().email().required(),
     })
     .required(),
 };
@@ -100,14 +119,6 @@ export const resetPasswordSchema = {
   body: joi
     .object({
       email: joi.string().email().required(),
-    })
-    .required(),
-};
-
-export const confirmEmailSchema = {
-  params: joi
-    .object({
-      token: joi.string().trim().required(),
     })
     .required(),
 };

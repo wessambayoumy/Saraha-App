@@ -1,5 +1,5 @@
 import { createClient } from "redis";
-import { env } from "../../config/env.service.js";
+import { env } from "../../../config/env.service.js";
 
 export const client = createClient({
   url: env.redisUri,

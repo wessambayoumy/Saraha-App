@@ -5,7 +5,7 @@ import userModel from "../../db/models/user/user.model.js";
 import { RequestHandler } from "express";
 import { findById } from "../../db/db.service.js";
 import jwt, { Secret } from "jsonwebtoken";
-import { env } from "../../config/env.service.js";
+import { env } from "../../../config/env.service.js";
 import { roleEnum } from "../enums/user.enums.js";
 import { redis } from "../../db/redis/redis.service.js";
 

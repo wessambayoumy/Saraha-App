@@ -18,10 +18,8 @@ export interface IUser {
   provider: providerEnum;
   role: roleEnum;
   views: number;
-  confirmed: boolean;
   signOutDate: Date;
   twoFactorEnabled?: boolean;
-  twoFactorSecret?: string;
   createdAt: Date;
   updatedAt: Date;
 }

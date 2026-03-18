@@ -4,19 +4,29 @@ import { INote } from "../../../interfaces/models/index.js";
 
 const noteSchema = new Schema<INote>(
   {
-    message: {
+    title: {
       type: String,
       trim: true,
-      require: [true, "Message is required"],
-      minLength: 3,
-      maxLength: 150,
+      required: [true, "Title is required"],
+      minLength: 1,
+      maxLength: 100,
+    },
+    content: {
+      type: String,
+      trim: true,
+      required: [true, "Content is required"],
+      minLength: 1,
+      maxLength: 1000,
+    },
+    attachments: {
+      type: [String],
+      default: [],
     },
     userId: {
       type: Types.ObjectId,
       ref: userModel,
       required: [true, "UserId is required"],
     },
-    image: String,
   },
 
   {

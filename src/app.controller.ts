@@ -1,22 +1,31 @@
 import express from "express";
 import dbConnection from "./db/connection.js";
+import { redisConection } from "./db/redis/redis.connection.js";
 import userRouter from "./modules/user/user.controller.js";
-import { env } from "./config/env.service.js";
+import noteRouter from "./modules/note/note.controller.js";
+import { env } from "../config/env.service.js";
 import {
   successResponseInterceptor,
   globalErrorHandler,
   NotFoundError,
 } from "./common/middlewares/index.js";
-import noteRouter from "./modules/note/note.controller.js";
 import cors from "cors";
-import { redisConection } from "./db/redis/redis.connection.js";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 const bootstrap = async () => {
   const app = express();
   const PORT = env.port;
 
-  app.use(cors(), express.json(), express.static("uploads"));
-  app.use(successResponseInterceptor);
+  app.use(
+    cors({ origin: env.corsOrigins }),
+    helmet(),
+    rateLimit({ windowMs: env.rateLimitTime, limit: env.rateLimitCount }),
+    express.json(),
+    successResponseInterceptor,
+  );
+
+  app.use("/uploads", express.static("uploads"));
 
   app.get("/", (_req, res: express.Response) => {
     res.json({ message: "Hello from TypeScript + Express!" });

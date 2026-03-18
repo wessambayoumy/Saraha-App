@@ -1,10 +1,29 @@
 import joi from "joi";
+
 export const createNoteSchema = {
   body: joi.object({
-    message: joi.string().required().min(3).max(150).trim(),
-    image: joi.string().uri().optional(),
+    title: joi.string().required().min(1).max(100).trim(),
+    content: joi.string().required().min(1).max(1000).trim(),
+    profileName: joi.string().required().trim().alphanum().min(5).max(40),
   }),
+};
+
+export const deleteNoteSchema = {
   params: joi.object({
-    userId: joi.string().hex().length(24).required(),
+    noteId: joi
+      .string()
+      .required()
+      .length(24)
+      .pattern(/^[0-9a-fA-F]{24}$/),
+  }),
+};
+
+export const getNoteByIdSchema = {
+  params: joi.object({
+    noteId: joi
+      .string()
+      .required()
+      .length(24)
+      .pattern(/^[0-9a-fA-F]{24}$/),
   }),
 };

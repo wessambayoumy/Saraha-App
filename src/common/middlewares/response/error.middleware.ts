@@ -45,8 +45,8 @@ export class ConflictError extends AppErrors {
 }
 
 export const globalErrorHandler: ErrorRequestHandler = (err, _req, res) => {
-  err instanceof MulterError &&
-    new BadRequestError(err.message, { code: err.code });
+  if (err instanceof MulterError)
+    throw new BadRequestError(err.message, { code: err.code });
   const status = err instanceof AppErrors ? err.statusCode : 500;
   let response: IErrorResponse = {
     message: err.message,

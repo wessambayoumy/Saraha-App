@@ -82,11 +82,6 @@ const userSchema = new Schema<IUser>(
       default: 0,
     },
 
-    confirmed: {
-      type: Boolean,
-      default: false,
-    },
-    
     signOutDate: Date,
 
     profilePicture: String,
@@ -94,10 +89,6 @@ const userSchema = new Schema<IUser>(
     twoFactorEnabled: {
       type: Boolean,
       default: false,
-    },
-    twoFactorSecret: {
-      type: String,
-      select: false,
     },
   },
   {

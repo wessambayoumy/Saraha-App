@@ -4,16 +4,32 @@ import noteModel from "../../db/models/note/note.model.js";
 
 import { Types } from "mongoose";
 import { NotFoundError } from "../../common/middlewares/index.js";
+import userModel from "../../db/models/user/user.model.js";
+import { env } from "../../../config/env.service.js";
 
 //post
 
 export const createNote = async (req: Request) => {
-  const { title, content } = req.body;
-  const userId = req.user._id;
+  const { title, content, profileName } = req.body;
+
+  const reciever = await dbService.findOne({
+    model: userModel,
+    filter: { profileName },
+  });
+
+  if (!reciever) throw new NotFoundError("user not found");
+
+  let attachments: string[] = [];
+
+  if (req.files && Array.isArray(req.files)) {
+    attachments = req.files.map(
+      (file) => `${env.jwtIssuer}/${file.destination}/${file.filename}`,
+    );
+  }
 
   return await dbService.create({
     model: noteModel,
-    data: { title, content, userId },
+    data: { title, content, attachments, userId: reciever?._id },
   });
 };
 
@@ -82,4 +98,3 @@ export const getNoteById = async (req: Request) => {
 
   return note;
 };
-

@@ -4,7 +4,7 @@ import { StringValue } from "ms";
 
 const envFile = process.env.NODE_ENV === "prod" ? ".env.prod" : ".env.dev";
 
-dotenv.config({ path: resolve("src/config/", envFile) });
+dotenv.config({ path: resolve("config/", envFile) });
 
 export const env = {
   port: Number(process.env.PORT),
@@ -19,4 +19,7 @@ export const env = {
   emailPass: process.env.EMAIL_PASS as string,
   emailSecret: process.env.EMAIL_SECRET as string,
   redisUri: process.env.REDIS_URI as string,
+  rateLimitCount: Number(process.env.RATE_LIMIT_COUNT),
+  rateLimitTime: Number(process.env.RATE_LIMIT_TIME),
+  corsOrigins: process.env.CORS_ORIGINS?.split(",") as string[],
 };
