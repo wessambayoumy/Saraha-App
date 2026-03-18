@@ -1,4 +1,4 @@
 /node_modules
-/src/config/.env.prod
-/src/config/.env.dev
+/config/.env.prod
+/config/.env.dev
 /.vscode
