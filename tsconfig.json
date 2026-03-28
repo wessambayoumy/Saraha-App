@@ -3,7 +3,7 @@
   {
   "compilerOptions": {
     "target": "es2023",
-    "rootDir": "./src",
+    "rootDir": ".",
     "outDir": "./dist",
     "strict": true,
     "module": "NodeNext",
