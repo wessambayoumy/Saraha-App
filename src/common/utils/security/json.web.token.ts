@@ -9,11 +9,6 @@ export interface JwtDetails {
   userId: Types.ObjectId;
   email?: string;
   role?: roleEnum;
-  iss?: string;
-  aud?: string | string[];
-  exp?: number;
-  iat?: number;
-  jti?: string;
 }
 
 export const signToken = (

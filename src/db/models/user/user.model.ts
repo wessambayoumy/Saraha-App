@@ -74,7 +74,7 @@ const userSchema = new Schema<IUser>(
     role: {
       type: String,
       enum: Object.values(roleEnum),
-      default: Object.values(roleEnum)[0],
+      default: Object.values(roleEnum)[1],
     },
 
     views: {

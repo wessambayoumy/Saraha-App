@@ -2,3 +2,4 @@
 /config/.env.prod
 /config/.env.dev
 /.vscode
+/dist

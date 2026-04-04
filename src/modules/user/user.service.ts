@@ -198,7 +198,8 @@ export const signIn = async (req: Request) => {
 
 export const signOut = async (req: Request) => {
   let token = req.token;
-  let { jti } = jwt.decode(token) as JwtDetails;
+  let { jti } = jwt.decode(token) as { jti: string };
+
   await redis.set(`revokeId:${jti}`, 1, {
     expiration: { type: "EX", value: 7 * 24 * 60 * 60 },
   });

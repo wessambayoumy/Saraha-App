@@ -123,7 +123,7 @@ userRouter.put(
 
 // DELETE
 
-userRouter.delete("/deleteUser", async (req, res) => {
+userRouter.delete("/deleteUser", authMiddleware, async (req, res) => {
   await userService.deleteUser(req);
   res.status(200).json({ message: "Password reset successfully" });
 });

@@ -9,7 +9,6 @@ export class AppErrors extends Error {
     message: string,
     statusCode: number,
     name: string,
-    extra: Object = {},
   ) {
     super(message);
     this.statusCode = statusCode;
@@ -22,31 +21,31 @@ export class AppErrors extends Error {
   }
 }
 export class BadRequestError extends AppErrors {
-  constructor(message: string, extra: Object = {}) {
-    super(message, 400, "BadRequestError", extra);
+  constructor(message: string) {
+    super(message, 400, "BadRequestError");
   }
 }
 export class UnAuthorizedError extends AppErrors {
-  constructor(message: string, extra: Object = {}) {
-    super(message, 401, "UnAuthorizedError", extra);
+  constructor(message: string) {
+    super(message, 401, "UnAuthorizedError");
   }
 }
 
 export class NotFoundError extends AppErrors {
-  constructor(message: string, extra: Object = {}) {
-    super(message, 404, "NotFoundError", extra);
+  constructor(message: string) {
+    super(message, 404, "NotFoundError");
   }
 }
 
 export class ConflictError extends AppErrors {
-  constructor(message: string, extra: Object = {}) {
-    super(message, 409, "ConflictError", extra);
+  constructor(message: string) {
+    super(message, 409, "ConflictError");
   }
 }
 
 export const globalErrorHandler: ErrorRequestHandler = (err, _req, res) => {
   if (err instanceof MulterError)
-    throw new BadRequestError(err.message, { code: err.code });
+    throw new BadRequestError(err.message);
   const status = err instanceof AppErrors ? err.statusCode : 500;
   let response: IErrorResponse = {
     message: err.message,
