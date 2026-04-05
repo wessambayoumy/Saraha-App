@@ -50,7 +50,6 @@ export const globalErrorHandler: ErrorRequestHandler = (err, _req, res) => {
   let response: IErrorResponse = {
     message: err.message,
     stack: err.stack,
-    extra: err.extra,
   };
   if (process.env.NODE_ENV === "prod") delete err.stack;
 
